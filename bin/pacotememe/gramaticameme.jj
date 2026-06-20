@@ -1,0 +1,499 @@
+/**
+ * Especificação JavaCC para o compilador CompilaMeme
+ */
+options
+{
+  static = true;
+  LOOKAHEAD = 1;
+}
+
+PARSER_BEGIN(gramaticameme)
+package pacotememe;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+
+public class gramaticameme
+{
+  public static List<String> listaErros = new ArrayList<String>();
+  
+  public static void registrarErro(ParseException e) {
+      Token proximo = e.currentToken.next;
+      String msg = "";
+      if (proximo.kind == INVALID) {
+          msg = "Erro Léxico na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": caractere inválido '" + proximo.image + "'";
+      } else {
+          msg = "Erro Sintático na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": Encontrado '" + proximo.image + "'. Esperava-se: ";
+          Set<String> esperados = new HashSet<String>();
+          if (e.expectedTokenSequences != null) {
+              for (int i = 0; i < e.expectedTokenSequences.length; i++) {
+                  for (int j = 0; j < e.expectedTokenSequences[i].length; j++) {
+                      esperados.add(e.tokenImage[e.expectedTokenSequences[i][j]]);
+                  }
+              }
+          }
+          msg += String.join(", ", esperados);
+      }
+      listaErros.add(msg);
+  }
+
+  public static void recuperarErro() {
+      Token t;
+      while (true) {
+          t = getToken(1);
+          if (t.kind == EOF) {
+              break;
+          }
+          if (t.kind == PONTO_VIRGULA) {
+              getNextToken(); // consome ponto e vírgula
+              break;
+          }
+          if (t.kind == FECHA_CHAVES) {
+              // não consome fecha chaves para que o escopo externo trate
+              break;
+          }
+          getNextToken(); // consome outros tokens
+      }
+  }
+
+  public static void main(String args []) 
+  {
+    if (args.length == 0) {
+        // Modo GUI
+        javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+                new CompilerGUI().setVisible(true);
+            }
+        });
+    } else {
+        // Modo CLI (Compatibilidade original)
+        gramaticameme parser = new gramaticameme(System.in);
+        System.out.println("======================================");
+        System.out.println("Bem-vindo ao compilador CompilaMeme");
+        System.out.println("Digite o seu código abaixo. Para encerrar e compilar no terminal,");
+        System.out.println("pressione CTRL+Z seguido de Enter");
+        System.out.println("======================================\n");
+        
+        try
+        {
+          gramaticameme.Programa();
+          if (listaErros.isEmpty()) {
+              System.out.println("\n✅ Top! Código compilado sem nenhum erro sintático ou léxico.");
+          } else {
+              System.out.println("\n❌ Vixe, deu red! Erros encontrados durante a compilação:");
+              for (String err : listaErros) {
+                  System.out.println("-> " + err);
+              }
+          }
+        }
+        catch (ParseException e)
+        {
+          System.out.println("\n❌ Vixe, deu red! Erro Sintático encontrado:");
+          Token t = e.currentToken;
+          Token proximo = t.next;
+          
+          System.out.println("-> O erro estourou na linha " + proximo.beginLine + ", coluna " + proximo.beginColumn + ".");
+          System.out.println("-> O token que quebrou tudo foi: '" + proximo.image + "'");
+          
+          if (t.beginLine < proximo.beginLine) {
+              System.out.println("-> DICA: O erro pode estar na linha anterior (" + t.beginLine + ")! Será que você não esqueceu um ponto e vírgula ';' ou algo do tipo lá?");
+          }
+
+          System.out.print("-> Mas na true, o compilador tava esperando receber: ");
+          for (int i = 0; i < e.expectedTokenSequences.length; i++) {
+            for (int j = 0; j < e.expectedTokenSequences[i].length; j++) {
+              System.out.print(e.tokenImage[e.expectedTokenSequences[i][j]] + " ");
+            }
+          }
+          System.out.println("\n\nDa seus pulos aí e tenta de novo!");
+        }
+        catch (TokenMgrError e)
+        {
+          System.out.println("\n🚫 Erro Léxico, bicho!");
+          String msg = e.getMessage();
+          try {
+              Pattern p = Pattern.compile("line (\\d+), column (\\d+).*?\\((\\d+)\\)");
+              Matcher m = p.matcher(msg);
+              if (m.find()) {
+                  String linha = m.group(1);
+                  String coluna = m.group(2);
+                  int ascii = Integer.parseInt(m.group(3));
+                  char caractereConvertido = (char) ascii;
+                  
+                  System.out.println("-> O bagulho travou na Linha " + linha + ", Coluna " + coluna + ".");
+                  System.out.println("-> O caractere intruso é esse aqui: [" + caractereConvertido + "] (Código ASCII: " + ascii + ")");
+              } else {
+                  System.out.println("Você digitou um caractere que não existe nos memes.");
+                  System.out.println("Detalhe original: " + msg);
+              }
+          } catch (Exception ex) {
+              System.out.println("Você digitou um caractere que não existe nos memes.");
+              System.out.println("Detalhe técnico: " + msg);
+          }
+          System.out.println("\nLimpa essa sujeira aí e tenta de novo!");
+        }
+    }
+  }
+}
+PARSER_END(gramaticameme)
+
+/* Caracteres ignorados (espaços e quebras de linha) */
+SKIP :
+{
+  " "
+| "\r"
+| "\t"
+| "\n"
+}
+
+/* Palavras-chave do CompiladorMeme */
+TOKEN : 
+{
+  < T_BRABO: "brabo" >          
+| < T_REAL: "realoficial" >     
+| < T_FOFOCA: "fofoca" >        
+| < T_SE: "tem_certeza?" >      
+| < T_SENAO: "senao" >          
+| < T_ENQUANTO: "segue_o_baile" > 
+| < T_PARA: "ja_acabou_jessica" > 
+| < T_TOP: "top" >              
+| < T_TROLL: "troll" >          
+| < T_F: "F" >                  
+}
+
+/* Operadores e Pontuação */
+TOKEN :
+{
+  < PLUS : "+" >
+| < MINUS : "-" >
+| < MULTIPLY : "*" >
+| < DIVIDE : "/" >
+| < ATRIB : "=" >
+| < IGUAL : "==" >
+| < DIFERENTE : "!=" >
+| < MAIOR : ">" >
+| < MENOR : "<" >
+| < MAIOR_IGUAL : ">=" >
+| < MENOR_IGUAL : "<=" >
+| < PONTO_VIRGULA : ";" >
+| < VIRGULA : "," >
+| < ABRE_PAR : "(" >
+| < FECHA_PAR : ")" >
+| < ABRE_CHAVES : "{" >
+| < FECHA_CHAVES : "}" >
+}
+
+/* Tipos de Dados e Identificadores */
+TOKEN :
+{
+  < ID: ["a"-"z","A"-"Z"] ( ["a"-"z","A"-"Z","0"-"9","_"] )* >
+| < NUMERO: (["0"-"9"])+ >
+| < NUMERO_FLOAT: (["0"-"9"])+ "." (["0"-"9"])+ >
+| < STRING: "\"" (~["\""])* "\"" >
+}
+
+/* Token inválido para capturar erros léxicos e permitir recuperação */
+TOKEN :
+{
+  < INVALID: ~[] >
+}
+
+/* ========================================================= */
+/* INÍCIO DA GRAMÁTICA (ANÁLISE SINTÁTICA)                   */
+/* ========================================================= */
+
+ASTNode Programa() :
+{
+  ASTNode node = new ASTNode("Programa");
+  ASTNode cmd;
+  ASTNode rest = null;
+}
+{
+  try {
+    ( cmd = Comando() { if (cmd != null) node.addChild(cmd); } )*
+    <EOF>
+    { return node; }
+  } catch (ParseException e) {
+    registrarErro(e);
+    if (getToken(1).kind != EOF) {
+        getNextToken();
+    }
+    rest = Programa();
+    if (rest != null) {
+        for (ASTNode child : rest.getChildren()) {
+            node.addChild(child);
+        }
+    }
+    return node;
+  }
+}
+
+ASTNode Comando() :
+{
+  ASTNode node = null;
+}
+{
+  try {
+    (
+      node = Declaracao()
+    | node = AtribuicaoOuImpressao()
+    | node = Condicional()
+    | node = LacoEnquanto()
+    | node = LacoPara()
+    )
+    { return node; }
+  } catch (ParseException e) {
+    registrarErro(e);
+    recuperarErro();
+    return new ASTNode("Erro Sintático", e.currentToken.next.image, e.currentToken.next.beginLine, e.currentToken.next.beginColumn);
+  }
+}
+
+ASTNode Declaracao() :
+{
+  Token tType = null;
+  Token tId = null;
+  ASTNode node = new ASTNode("Declaração");
+  ASTNode expr = null;
+}
+{
+  ( tType = <T_BRABO> | tType = <T_REAL> | tType = <T_FOFOCA> )
+  { node.addChild(new ASTNode("Tipo", tType.image, tType.beginLine, tType.beginColumn)); }
+  
+  tId = <ID> 
+  { 
+    ASTNode decl = new ASTNode("Variável", tId.image, tId.beginLine, tId.beginColumn); 
+  }
+  ( <ATRIB> expr = Expressao() { decl.addChild(expr); } )? 
+  { node.addChild(decl); }
+  
+  ( 
+    <VIRGULA> 
+    tId = <ID> 
+    { 
+      decl = new ASTNode("Variável", tId.image, tId.beginLine, tId.beginColumn); 
+    }
+    ( <ATRIB> expr = Expressao() { decl.addChild(expr); } )? 
+    { node.addChild(decl); }
+  )* 
+  <PONTO_VIRGULA>
+  { return node; }
+}
+
+ASTNode AtribuicaoOuImpressao() :
+{
+  Token tId = null;
+  ASTNode node = null;
+  ASTNode expr = null;
+}
+{
+  (
+    tId = <ID> <ATRIB> expr = Expressao() <PONTO_VIRGULA>
+    {
+      node = new ASTNode("Atribuição", tId.image, tId.beginLine, tId.beginColumn);
+      node.addChild(expr);
+    }
+  |
+    <T_F> <ABRE_PAR> expr = Expressao() <FECHA_PAR> <PONTO_VIRGULA>
+    {
+      node = new ASTNode("Impressão (F)");
+      node.addChild(expr);
+    }
+  )
+  { return node; }
+}
+
+ASTNode Condicional() :
+{
+  ASTNode node = new ASTNode("Condicional (tem_certeza?)");
+  ASTNode expr = null;
+  ASTNode cmd = null;
+  ASTNode blockTrue = new ASTNode("Então");
+  ASTNode blockFalse = new ASTNode("Senão");
+}
+{
+  <T_SE> <ABRE_PAR> expr = Expressao() <FECHA_PAR> 
+  { 
+    ASTNode condNode = new ASTNode("Condição");
+    condNode.addChild(expr);
+    node.addChild(condNode); 
+  }
+  <ABRE_CHAVES> 
+    ( cmd = Comando() { if (cmd != null) blockTrue.addChild(cmd); } )* 
+  <FECHA_CHAVES>
+  { node.addChild(blockTrue); }
+  ( 
+    <T_SENAO> 
+    <ABRE_CHAVES> 
+      ( cmd = Comando() { if (cmd != null) blockFalse.addChild(cmd); } )* 
+    <FECHA_CHAVES>
+    { node.addChild(blockFalse); }
+  )?
+  { return node; }
+}
+
+ASTNode LacoEnquanto() :
+{
+  ASTNode node = new ASTNode("Laço Enquanto (segue_o_baile)");
+  ASTNode expr = null;
+  ASTNode cmd = null;
+  ASTNode body = new ASTNode("Corpo");
+}
+{
+  <T_ENQUANTO> <ABRE_PAR> expr = Expressao() <FECHA_PAR>
+  {
+    ASTNode cond = new ASTNode("Condição");
+    cond.addChild(expr);
+    node.addChild(cond);
+  }
+  <ABRE_CHAVES>
+    ( cmd = Comando() { if (cmd != null) body.addChild(cmd); } )*
+  <FECHA_CHAVES>
+  {
+    node.addChild(body);
+    return node;
+  }
+}
+
+ASTNode LacoPara() :
+{
+  ASTNode node = new ASTNode("Laço Para (ja_acabou_jessica)");
+  Token tType = null;
+  Token tIdInit = null;
+  Token tIdStep = null;
+  ASTNode exprInit = null;
+  ASTNode exprCond = null;
+  ASTNode exprStep = null;
+  ASTNode cmd = null;
+  ASTNode body = new ASTNode("Corpo");
+}
+{
+  <T_PARA> <ABRE_PAR> 
+    ( tType = <T_BRABO> | tType = <T_REAL> | tType = <T_FOFOCA> ) 
+    tIdInit = <ID> <ATRIB> exprInit = Expressao() <PONTO_VIRGULA>
+    {
+      ASTNode initNode = new ASTNode("Inicialização");
+      ASTNode varNode = new ASTNode("Variável", tIdInit.image, tIdInit.beginLine, tIdInit.beginColumn);
+      varNode.addChild(new ASTNode("Tipo", tType.image));
+      varNode.addChild(exprInit);
+      initNode.addChild(varNode);
+      node.addChild(initNode);
+    }
+    exprCond = Expressao() <PONTO_VIRGULA>
+    {
+      ASTNode condNode = new ASTNode("Condição");
+      condNode.addChild(exprCond);
+      node.addChild(condNode);
+    }
+    tIdStep = <ID> <ATRIB> exprStep = Expressao()
+    {
+      ASTNode stepNode = new ASTNode("Passo");
+      ASTNode varStep = new ASTNode("Variável", tIdStep.image, tIdStep.beginLine, tIdStep.beginColumn);
+      varStep.addChild(exprStep);
+      stepNode.addChild(varStep);
+      node.addChild(stepNode);
+    }
+  <FECHA_PAR>
+  <ABRE_CHAVES>
+    ( cmd = Comando() { if (cmd != null) body.addChild(cmd); } )*
+  <FECHA_CHAVES>
+  {
+    node.addChild(body);
+    return node;
+  }
+}
+
+ASTNode Expressao() :
+{
+  ASTNode node = null;
+}
+{
+  node = ExpressaoRelacional()
+  { return node; }
+}
+
+ASTNode ExpressaoRelacional() :
+{
+  ASTNode left = null;
+  ASTNode right = null;
+  Token op = null;
+}
+{
+  left = ExpressaoAritmetica() 
+  ( 
+    ( op = <IGUAL> | op = <DIFERENTE> | op = <MAIOR> | op = <MENOR> | op = <MAIOR_IGUAL> | op = <MENOR_IGUAL> ) 
+    right = ExpressaoAritmetica()
+    {
+      ASTNode temp = new ASTNode("OpRelacional", op.image, op.beginLine, op.beginColumn);
+      temp.addChild(left);
+      temp.addChild(right);
+      left = temp;
+    }
+  )?
+  { return left; }
+}
+
+ASTNode ExpressaoAritmetica() :
+{
+  ASTNode left = null;
+  ASTNode right = null;
+  Token op = null;
+}
+{
+  left = Termo() 
+  ( 
+    ( op = <PLUS> | op = <MINUS> ) 
+    right = Termo()
+    {
+      ASTNode temp = new ASTNode("OpAritmético", op.image, op.beginLine, op.beginColumn);
+      temp.addChild(left);
+      temp.addChild(right);
+      left = temp;
+    }
+  )*
+  { return left; }
+}
+
+ASTNode Termo() :
+{
+  ASTNode left = null;
+  ASTNode right = null;
+  Token op = null;
+}
+{
+  left = Fator() 
+  ( 
+    ( op = <MULTIPLY> | op = <DIVIDE> ) 
+    right = Fator()
+    {
+      ASTNode temp = new ASTNode("OpMultiplicativo", op.image, op.beginLine, op.beginColumn);
+      temp.addChild(left);
+      temp.addChild(right);
+      left = temp;
+    }
+  )*
+  { return left; }
+}
+
+ASTNode Fator() :
+{
+  Token t = null;
+  ASTNode node = null;
+  ASTNode expr = null;
+}
+{
+  (
+    t = <NUMERO> { node = new ASTNode("Número Inteiro", t.image, t.beginLine, t.beginColumn); }
+  | t = <NUMERO_FLOAT> { node = new ASTNode("Número Decimal", t.image, t.beginLine, t.beginColumn); }
+  | t = <STRING> { node = new ASTNode("Texto", t.image, t.beginLine, t.beginColumn); }
+  | t = <T_TOP> { node = new ASTNode("Booleano", t.image, t.beginLine, t.beginColumn); }
+  | t = <T_TROLL> { node = new ASTNode("Booleano", t.image, t.beginLine, t.beginColumn); }
+  | t = <ID> { node = new ASTNode("Identificador", t.image, t.beginLine, t.beginColumn); }
+  | <ABRE_PAR> expr = Expressao() <FECHA_PAR> { node = expr; }
+  )
+  { return node; }
+}

@@ -1,0 +1,7 @@
+brabo a = 10;
+realoficial b = 20.5;
+tem_certeza? (a < b) {
+  F(a);
+} senao {
+  F(b);
+}
