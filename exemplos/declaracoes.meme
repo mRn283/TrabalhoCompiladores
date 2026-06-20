@@ -1,0 +1,13 @@
+brabo x = 10;
+realoficial y = 3.1415;
+fofoca nome = "Antigravity";
+
+brabo a = 1, b, c = 3;
+
+a = 150;
+nome = "Meme Lang";
+
+F(x);
+F(y);
+F(nome);
+F(a + c);

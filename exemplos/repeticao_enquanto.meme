@@ -1,0 +1,10 @@
+brabo contador = 1;
+brabo limite = 5;
+
+segue_o_baile (contador <= limite) {
+  F("Contando...");
+  F(contador);
+  contador = contador + 1;
+}
+
+F("Fim do baile!");

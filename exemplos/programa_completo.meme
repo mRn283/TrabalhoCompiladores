@@ -1,0 +1,29 @@
+brabo num1 = 10, num2 = 20;
+realoficial resultado = 0.0;
+fofoca status = "Executando...";
+
+F(status);
+
+tem_certeza? (num1 < num2) {
+  F("num2 é maior que num1");
+  resultado = (num2 - num1) * 2.5;
+} senao {
+  F("num1 é maior ou igual a num2");
+  resultado = (num1 + num2) / 2.0;
+}
+
+F("Resultado intermediário:");
+F(resultado);
+
+brabo regressivo = 3;
+segue_o_baile (regressivo > 0) {
+  F(regressivo);
+  regressivo = regressivo - 1;
+}
+
+ja_acabou_jessica (brabo j = 1; j <= 3; j = j + 1) {
+  F("Iteracao:");
+  F(j);
+}
+
+F("Fim da execução com sucesso!");

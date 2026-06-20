@@ -1,0 +1,9 @@
+ja_acabou_jessica (brabo i = 0; i < 5; i = i + 1) {
+  F("i atual:");
+  F(i);
+}
+
+ja_acabou_jessica (realoficial x = 1.0; x <= 3.0; x = x + 0.5) {
+  F("x atual:");
+  F(x);
+}

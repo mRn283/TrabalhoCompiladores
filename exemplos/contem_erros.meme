@@ -1,0 +1,11 @@
+brabo valor@ = 100;
+realoficial preco$ = 49.90;
+
+brabo erroSemPontoVirgula = 50
+
+tem_certeza? idade >= 18 {
+  F("Erro aqui");
+}
+
+fofoca ok = "Depois dos erros, o compilador se recupera!";
+F(ok);

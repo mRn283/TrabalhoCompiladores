@@ -1,0 +1,15 @@
+brabo idade = 18;
+brabo limite = 16;
+
+tem_certeza? (idade >= limite) {
+  F("Pode entrar na festa!");
+} senao {
+  F("Ainda é muito jovem!");
+}
+
+realoficial nota = 8.5;
+tem_certeza? (nota == 10.0) {
+  F("Gênio!");
+} senao {
+  F("Estude mais!");
+}
