@@ -20,6 +20,7 @@ import java.util.HashSet;
 public class gramaticameme
 {
   public static List<String> listaErros = new ArrayList<String>();
+  public static List<Integer> listaLinhasErros = new ArrayList<Integer>();
   
   public static void registrarErro(ParseException e) {
       Token proximo = e.currentToken.next;
@@ -39,6 +40,7 @@ public class gramaticameme
           msg += String.join(", ", esperados);
       }
       listaErros.add(msg);
+      listaLinhasErros.add(proximo.beginLine);
   }
 
   public static void recuperarErro() {

@@ -86,7 +86,7 @@ public class CompilerGUI extends JFrame {
         txtEditor.setCaretColor(Color.WHITE);
         txtEditor.setFont(new Font("Consolas", Font.PLAIN, 15));
         txtEditor.setBorder(new EmptyBorder(5, 5, 5, 5));
-        
+
         // Add tab size adjustment
         txtEditor.setTabSize(4);
 
@@ -106,8 +106,24 @@ public class CompilerGUI extends JFrame {
         lblLineCol.setForeground(COLOR_FG_MUTED);
         lblLineCol.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         editorFooter.add(lblLineCol, BorderLayout.EAST);
-        
+
         txtEditor.addCaretListener(e -> updateLineColLabel());
+        txtEditor.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                clearErrorHighlights();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                clearErrorHighlights();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                clearErrorHighlights();
+            }
+        });
         editorPanel.add(editorFooter, BorderLayout.SOUTH);
 
         // Right Panel: Tabbed pane for JTree (Syntax Tree) and JTable (Tokens List)
@@ -115,7 +131,7 @@ public class CompilerGUI extends JFrame {
         rightTabbedPane.setBackground(COLOR_BG_LIGHTER);
         rightTabbedPane.setForeground(COLOR_FG);
         rightTabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        
+
         // Custom tree
         treeSyntax = new JTree(new DefaultMutableTreeNode("Árvore Sintática (Compile para carregar)"));
         treeSyntax.setBackground(COLOR_BG_EDITOR);
@@ -124,7 +140,7 @@ public class CompilerGUI extends JFrame {
         treeSyntax.setCellRenderer(new DefaultTreeCellRenderer() {
             @Override
             public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel,
-                                                          boolean expanded, boolean leaf, int row, boolean hasFocus) {
+                    boolean expanded, boolean leaf, int row, boolean hasFocus) {
                 super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
                 setBackgroundNonSelectionColor(COLOR_BG_EDITOR);
                 setBackgroundSelectionColor(COLOR_ACCENT);
@@ -138,7 +154,7 @@ public class CompilerGUI extends JFrame {
         rightTabbedPane.addTab("Árvore Sintática", scrollTree);
 
         // Custom Tokens table
-        String[] columnNames = {"Linha", "Coluna", "Token / Tipo", "Lexema"};
+        String[] columnNames = { "Linha", "Coluna", "Token / Tipo", "Lexema" };
         DefaultTableModel model = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -185,6 +201,28 @@ public class CompilerGUI extends JFrame {
         txtErrors.setForeground(COLOR_FG);
         txtErrors.setFont(new Font("Consolas", Font.PLAIN, 13));
         txtErrors.setBorder(new EmptyBorder(5, 5, 5, 5));
+        txtErrors.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        txtErrors.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                try {
+                    int caretPos = txtErrors.viewToModel(e.getPoint());
+                    int line = txtErrors.getLineOfOffset(caretPos);
+                    int start = txtErrors.getLineStartOffset(line);
+                    int end = txtErrors.getLineEndOffset(line);
+                    String lineText = txtErrors.getText(start, end - start);
+
+                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("(?:Linha|line|Linha:)\\s*(\\d+)");
+                    java.util.regex.Matcher m = p.matcher(lineText);
+                    if (m.find()) {
+                        int errorLine = Integer.parseInt(m.group(1));
+                        goToLine(errorLine);
+                    }
+                } catch (Exception ex) {
+                    // Ignore
+                }
+            }
+        });
         JScrollPane scrollErrors = new JScrollPane(txtErrors);
         scrollErrors.setBorder(null);
         bottomPanel.add(scrollErrors, BorderLayout.CENTER);
@@ -199,7 +237,8 @@ public class CompilerGUI extends JFrame {
         mainPanel.add(verticalSplit, BorderLayout.CENTER);
 
         // Register F5 key binding for compilation
-        btnCompile.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0), "compile");
+        btnCompile.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_F5, 0),
+                "compile");
         btnCompile.getActionMap().put("compile", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -249,8 +288,7 @@ public class CompilerGUI extends JFrame {
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
                 new LineBorder(bg.darker(), 1),
-                new EmptyBorder(5, 12, 5, 12)
-        ));
+                new EmptyBorder(5, 12, 5, 12)));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return btn;
     }
@@ -266,7 +304,8 @@ public class CompilerGUI extends JFrame {
                 lblStatus.setText("Status: Arquivo " + currentFile.getName() + " carregado.");
                 lblStatus.setForeground(COLOR_FG);
             } catch (IOException ex) {
-                JOptionPane.showMessageDialog(this, "Erro ao ler o arquivo: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Erro ao ler o arquivo: " + ex.getMessage(), "Erro",
+                        JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -288,7 +327,8 @@ public class CompilerGUI extends JFrame {
             lblStatus.setText("Status: Arquivo " + currentFile.getName() + " salvo com sucesso.");
             lblStatus.setForeground(COLOR_SUCCESS);
         } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Erro ao salvar o arquivo: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Erro ao salvar o arquivo: " + ex.getMessage(), "Erro",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -311,10 +351,14 @@ public class CompilerGUI extends JFrame {
         currentFile = null;
         setTitle("Compilador CompilaMeme - IDE");
 
+        gramaticameme.listaLinhasErros.clear();
+        clearErrorHighlights();
+
         DefaultTableModel model = (DefaultTableModel) tblTokens.getModel();
         model.setRowCount(0);
 
-        treeSyntax.setModel(new DefaultTreeModel(new DefaultMutableTreeNode("Árvore Sintática (Compile para carregar)")));
+        treeSyntax
+                .setModel(new DefaultTreeModel(new DefaultMutableTreeNode("Árvore Sintática (Compile para carregar)")));
     }
 
     private void runCompiler() {
@@ -326,6 +370,8 @@ public class CompilerGUI extends JFrame {
         }
 
         txtErrors.setText("");
+        gramaticameme.listaLinhasErros.clear();
+        clearErrorHighlights();
 
         // Initialize parser static state if needed, or ReInit
         try {
@@ -348,13 +394,13 @@ public class CompilerGUI extends JFrame {
                 if (t == null || t.kind == gramaticamemeConstants.EOF) {
                     break;
                 }
-                
+
                 String tokenKindName = gramaticamemeConstants.tokenImage[t.kind];
                 if (t.kind == (gramaticamemeConstants.tokenImage.length - 1) && tokenKindName.equals("<INVALID>")) {
                     tokenKindName = "INVÁLIDO (Erro Léxico)";
                 }
 
-                model.addRow(new Object[]{t.beginLine, t.beginColumn, tokenKindName, t.image});
+                model.addRow(new Object[] { t.beginLine, t.beginColumn, tokenKindName, t.image });
             }
         } catch (Throwable e) {
             // Catch lexical manager errors
@@ -375,6 +421,14 @@ public class CompilerGUI extends JFrame {
         } catch (TokenMgrError e) {
             // Fallback for lexical crashes
             gramaticameme.listaErros.add("Erro Léxico: " + e.getMessage());
+            try {
+                java.util.regex.Pattern p = java.util.regex.Pattern.compile("line (\\d+), column (\\d+)");
+                java.util.regex.Matcher m = p.matcher(e.getMessage());
+                if (m.find()) {
+                    gramaticameme.listaLinhasErros.add(Integer.parseInt(m.group(1)));
+                }
+            } catch (Exception ex) {
+            }
             parserCrashed = true;
             crashMsg = e.getMessage();
         } catch (Exception e) {
@@ -388,7 +442,7 @@ public class CompilerGUI extends JFrame {
             lblStatus.setText("Status: Aceito! Código sintaticamente correto.");
             lblStatus.setForeground(COLOR_SUCCESS);
             txtErrors.setText("Nenhum erro léxico ou sintático encontrado.");
-            
+
             // Build tree
             DefaultMutableTreeNode swingRoot = buildSwingTree(rootNode);
             treeSyntax.setModel(new DefaultTreeModel(swingRoot));
@@ -403,6 +457,8 @@ public class CompilerGUI extends JFrame {
             }
             txtErrors.setText(sb.toString());
 
+            highlightErrorLines();
+
             // Build partial tree (including error nodes if any)
             if (rootNode != null) {
                 DefaultMutableTreeNode swingRoot = buildSwingTree(rootNode);
@@ -415,7 +471,8 @@ public class CompilerGUI extends JFrame {
     }
 
     private DefaultMutableTreeNode buildSwingTree(ASTNode node) {
-        if (node == null) return null;
+        if (node == null)
+            return null;
         DefaultMutableTreeNode swingNode = new DefaultMutableTreeNode(node.toString());
         for (ASTNode child : node.getChildren()) {
             DefaultMutableTreeNode childSwingNode = buildSwingTree(child);
@@ -435,6 +492,63 @@ public class CompilerGUI extends JFrame {
         }
     }
 
+    private void highlightErrorLines() {
+        txtEditor.getHighlighter().removeAllHighlights();
+
+        if (gramaticameme.listaLinhasErros == null || gramaticameme.listaLinhasErros.isEmpty()) {
+            return;
+        }
+
+        javax.swing.text.Highlighter highlighter = txtEditor.getHighlighter();
+        javax.swing.text.Highlighter.HighlightPainter painter = new javax.swing.text.DefaultHighlighter.DefaultHighlightPainter(
+                new Color(244, 67, 54, 45));
+
+        for (int lineNum : gramaticameme.listaLinhasErros) {
+            try {
+                int lineIndex = lineNum - 1; // JTextArea is 0-indexed
+                if (lineIndex >= 0 && lineIndex < txtEditor.getLineCount()) {
+                    int startOffset = txtEditor.getLineStartOffset(lineIndex);
+                    int endOffset = txtEditor.getLineEndOffset(lineIndex);
+
+                    if (endOffset > startOffset) {
+                        String text = txtEditor.getText(startOffset, endOffset - startOffset);
+                        if (text.endsWith("\n")) {
+                            endOffset--;
+                        }
+                        if (text.endsWith("\r")) {
+                            endOffset--;
+                        }
+                    }
+
+                    if (endOffset > startOffset) {
+                        highlighter.addHighlight(startOffset, endOffset, painter);
+                    } else {
+                        highlighter.addHighlight(startOffset, startOffset + 1, painter);
+                    }
+                }
+            } catch (Exception ex) {
+                // Ignore highlight errors
+            }
+        }
+    }
+
+    private void clearErrorHighlights() {
+        txtEditor.getHighlighter().removeAllHighlights();
+    }
+
+    private void goToLine(int line) {
+        try {
+            int lineIndex = line - 1;
+            if (lineIndex >= 0 && lineIndex < txtEditor.getLineCount()) {
+                int offset = txtEditor.getLineStartOffset(lineIndex);
+                txtEditor.setCaretPosition(offset);
+                txtEditor.requestFocusInWindow();
+            }
+        } catch (Exception e) {
+            // Ignore
+        }
+    }
+
     // Gutter component for Line Numbers
     private static class LineNumberGutter extends JTextArea {
         private final JTextArea textArea;
@@ -447,14 +561,22 @@ public class CompilerGUI extends JFrame {
             setEditable(false);
             setFocusable(false);
             setBorder(new EmptyBorder(5, 8, 5, 8));
-            
+
             textArea.getDocument().addDocumentListener(new DocumentListener() {
                 @Override
-                public void insertUpdate(DocumentEvent e) { updateLines(); }
+                public void insertUpdate(DocumentEvent e) {
+                    updateLines();
+                }
+
                 @Override
-                public void removeUpdate(DocumentEvent e) { updateLines(); }
+                public void removeUpdate(DocumentEvent e) {
+                    updateLines();
+                }
+
                 @Override
-                public void changedUpdate(DocumentEvent e) { updateLines(); }
+                public void changedUpdate(DocumentEvent e) {
+                    updateLines();
+                }
             });
             updateLines();
         }
