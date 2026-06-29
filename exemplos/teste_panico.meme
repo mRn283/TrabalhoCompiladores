@@ -1,0 +1,26 @@
+brabo a = 5;
+brabo = 10;
+
+brabo x = 10
+brabo y = 20;
+
+tem_certeza? (a 5) {
+  F("a eh igual a 5");
+} senao {
+  F("a nao eh 5");
+}
+
+segue_o_baile (a 10) {
+  F(a);
+  a = a + 1;
+}
+
+ja_acabou_jessica (brabo i 0; i < 3; i = i + 1) {
+  F("i eh:");
+  F(i);
+}
+
+ja_acabou_jessica (brabo k = 0; k < 3; k = k 1) {
+  F("k eh:");
+  F(k);
+}

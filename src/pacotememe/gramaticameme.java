@@ -13,11 +13,114 @@ public class gramaticameme implements gramaticamemeConstants {
   public static List<String> listaErros = new ArrayList<String>();
   public static List<Integer> listaLinhasErros = new ArrayList<Integer>();
 
+  public static boolean isOperand(int kind) {
+      return kind == ID ||
+             kind == NUMERO ||
+             kind == NUMERO_FLOAT ||
+             kind == STRING ||
+             kind == T_TOP ||
+             kind == T_TROLL;
+  }
+
+  public static boolean isMissingOperator(ParseException e) {
+      Token current = e.currentToken;
+      if (current == null) return false;
+      Token proximo = current.next;
+      if (proximo == null) return false;
+
+      if (isOperand(current.kind) && isOperand(proximo.kind)) {
+          if (proximo.next != null && proximo.next.kind == ATRIB) {
+              return false;
+          }
+          return true;
+      }
+      return false;
+  }
+
+  public static boolean isMissingIdentifier(ParseException e) {
+      Token current = e.currentToken;
+      if (current == null) return false;
+      Token proximo = current.next;
+      if (proximo == null) return false;
+
+      if (current.kind == T_BRABO || current.kind == T_REAL || current.kind == T_FOFOCA || current.kind == VIRGULA) {
+          if (proximo.kind == ATRIB || proximo.kind == PONTO_VIRGULA || proximo.kind == VIRGULA) {
+              return true;
+          }
+      }
+
+      if (current.kind == PONTO_VIRGULA && proximo.kind == ATRIB) {
+          return true;
+      }
+
+      boolean expectedOnlyID = false;
+      if (e.expectedTokenSequences != null && e.expectedTokenSequences.length > 0) {
+          boolean allSequencesAreID = true;
+          for (int i = 0; i < e.expectedTokenSequences.length; i++) {
+              if (e.expectedTokenSequences[i].length > 0) {
+                  int expectedKind = e.expectedTokenSequences[i][0];
+                  if (expectedKind != ID) {
+                      allSequencesAreID = false;
+                      break;
+                  }
+              } else {
+                  allSequencesAreID = false;
+                  break;
+              }
+          }
+          if (allSequencesAreID) {
+              expectedOnlyID = true;
+          }
+      }
+
+      if (expectedOnlyID && proximo.kind != ID) {
+          return true;
+      }
+
+      return false;
+  }
+
+  public static boolean isMissingSemicolon(ParseException e) {
+      Token current = e.currentToken;
+      if (current == null) return false;
+      Token proximo = current.next;
+      if (proximo == null) return false;
+
+      boolean expectedSemicolon = false;
+      if (e.expectedTokenSequences != null) {
+          for (int i = 0; i < e.expectedTokenSequences.length; i++) {
+              for (int j = 0; j < e.expectedTokenSequences[i].length; j++) {
+                  if (e.expectedTokenSequences[i][j] == PONTO_VIRGULA) {
+                      expectedSemicolon = true;
+                      break;
+                  }
+              }
+              if (expectedSemicolon) break;
+          }
+      }
+
+      if (expectedSemicolon) {
+          if (proximo.kind == T_BRABO || proximo.kind == T_REAL || proximo.kind == T_FOFOCA ||
+              proximo.kind == T_SE || proximo.kind == T_ENQUANTO || proximo.kind == T_PARA ||
+              proximo.kind == T_F || proximo.kind == FECHA_CHAVES ||
+              (proximo.kind == ID && proximo.next != null && proximo.next.kind == ATRIB)) {
+              return true;
+          }
+      }
+      return false;
+  }
+
   public static void registrarErro(ParseException e) {
       Token proximo = e.currentToken.next;
       String msg = "";
       if (proximo.kind == INVALID) {
           msg = "Erro L\u00e9xico na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": caractere inv\u00e1lido '" + proximo.image + "'";
+      } else if (isMissingOperator(e)) {
+          msg = "Erro Sint\u00e1tico na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": Aus\u00eancia de operador (como '<', '>', '=', etc.) entre '" + e.currentToken.image + "' e '" + proximo.image + "'";
+      } else if (isMissingIdentifier(e)) {
+          msg = "Erro Sint\u00e1tico na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": Aus\u00eancia de identificador (nome de vari\u00e1vel esperado, mas foi encontrado '" + proximo.image + "')";
+      } else if (isMissingSemicolon(e)) {
+          msg = "Erro Sint\u00e1tico na Linha " + e.currentToken.beginLine + ", Coluna " + (e.currentToken.endColumn + 1) + ": Aus\u00eancia de ';' ao final do comando (encontrado '" + proximo.image + "')";
       } else {
           msg = "Erro Sint\u00e1tico na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": Encontrado '" + proximo.image + "'. Esperava-se: ";
           Set<String> esperados = new HashSet<String>();
@@ -50,6 +153,23 @@ public class gramaticameme implements gramaticamemeConstants {
               break;
           }
           getNextToken(); // consome outros tokens
+      }
+  }
+
+  public static void recuperarErroPara() {
+      Token t;
+      while (true) {
+          t = getToken(1);
+          if (t.kind == EOF) {
+              break;
+          }
+          if (t.kind == ABRE_CHAVES) {
+              break; // não consome, o parser consome depois
+          }
+          if (t.kind == FECHA_CHAVES) {
+              break; // não consome
+          }
+          getNextToken();
       }
   }
 
@@ -325,13 +445,18 @@ node = new ASTNode("Impress\u00e3o (F)");
   ASTNode cmd = null;
   ASTNode blockTrue = new ASTNode("Ent\u00e3o");
   ASTNode blockFalse = new ASTNode("Sen\u00e3o");
-    jj_consume_token(T_SE);
-    jj_consume_token(ABRE_PAR);
-    expr = Expressao();
-    jj_consume_token(FECHA_PAR);
+    try {
+      jj_consume_token(T_SE);
+      jj_consume_token(ABRE_PAR);
+      expr = Expressao();
+      jj_consume_token(FECHA_PAR);
 ASTNode condNode = new ASTNode("Condi\u00e7\u00e3o");
-    condNode.addChild(expr);
-    node.addChild(condNode);
+      condNode.addChild(expr);
+      node.addChild(condNode);
+    } catch (ParseException e) {
+registrarErro(e);
+      recuperarErroPara();
+    }
     jj_consume_token(ABRE_CHAVES);
     label_3:
     while (true) {
@@ -397,13 +522,18 @@ node.addChild(blockFalse);
   ASTNode expr = null;
   ASTNode cmd = null;
   ASTNode body = new ASTNode("Corpo");
-    jj_consume_token(T_ENQUANTO);
-    jj_consume_token(ABRE_PAR);
-    expr = Expressao();
-    jj_consume_token(FECHA_PAR);
+    try {
+      jj_consume_token(T_ENQUANTO);
+      jj_consume_token(ABRE_PAR);
+      expr = Expressao();
+      jj_consume_token(FECHA_PAR);
 ASTNode cond = new ASTNode("Condi\u00e7\u00e3o");
-    cond.addChild(expr);
-    node.addChild(cond);
+      cond.addChild(expr);
+      node.addChild(cond);
+    } catch (ParseException e) {
+registrarErro(e);
+      recuperarErroPara();
+    }
     jj_consume_token(ABRE_CHAVES);
     label_5:
     while (true) {
@@ -441,50 +571,55 @@ node.addChild(body);
   ASTNode exprStep = null;
   ASTNode cmd = null;
   ASTNode body = new ASTNode("Corpo");
-    jj_consume_token(T_PARA);
-    jj_consume_token(ABRE_PAR);
-    switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
-    case T_BRABO:{
-      tType = jj_consume_token(T_BRABO);
-      break;
+    try {
+      jj_consume_token(T_PARA);
+      jj_consume_token(ABRE_PAR);
+      switch ((jj_ntk==-1)?jj_ntk_f():jj_ntk) {
+      case T_BRABO:{
+        tType = jj_consume_token(T_BRABO);
+        break;
+        }
+      case T_REAL:{
+        tType = jj_consume_token(T_REAL);
+        break;
+        }
+      case T_FOFOCA:{
+        tType = jj_consume_token(T_FOFOCA);
+        break;
+        }
+      default:
+        jj_la1[11] = jj_gen;
+        jj_consume_token(-1);
+        throw new ParseException();
       }
-    case T_REAL:{
-      tType = jj_consume_token(T_REAL);
-      break;
-      }
-    case T_FOFOCA:{
-      tType = jj_consume_token(T_FOFOCA);
-      break;
-      }
-    default:
-      jj_la1[11] = jj_gen;
-      jj_consume_token(-1);
-      throw new ParseException();
-    }
-    tIdInit = jj_consume_token(ID);
-    jj_consume_token(ATRIB);
-    exprInit = Expressao();
-    jj_consume_token(PONTO_VIRGULA);
+      tIdInit = jj_consume_token(ID);
+      jj_consume_token(ATRIB);
+      exprInit = Expressao();
+      jj_consume_token(PONTO_VIRGULA);
 ASTNode initNode = new ASTNode("Inicializa\u00e7\u00e3o");
-      ASTNode varNode = new ASTNode("Vari\u00e1vel", tIdInit.image, tIdInit.beginLine, tIdInit.beginColumn);
-      varNode.addChild(new ASTNode("Tipo", tType.image));
-      varNode.addChild(exprInit);
-      initNode.addChild(varNode);
-      node.addChild(initNode);
-    exprCond = Expressao();
-    jj_consume_token(PONTO_VIRGULA);
+        ASTNode varNode = new ASTNode("Vari\u00e1vel", tIdInit.image, tIdInit.beginLine, tIdInit.beginColumn);
+        varNode.addChild(new ASTNode("Tipo", tType.image));
+        varNode.addChild(exprInit);
+        initNode.addChild(varNode);
+        node.addChild(initNode);
+      exprCond = Expressao();
+      jj_consume_token(PONTO_VIRGULA);
 ASTNode condNode = new ASTNode("Condi\u00e7\u00e3o");
-      condNode.addChild(exprCond);
-      node.addChild(condNode);
-    tIdStep = jj_consume_token(ID);
-    jj_consume_token(ATRIB);
-    exprStep = Expressao();
+        condNode.addChild(exprCond);
+        node.addChild(condNode);
+      tIdStep = jj_consume_token(ID);
+      jj_consume_token(ATRIB);
+      exprStep = Expressao();
 ASTNode stepNode = new ASTNode("Passo");
-      ASTNode varStep = new ASTNode("Vari\u00e1vel", tIdStep.image, tIdStep.beginLine, tIdStep.beginColumn);
-      varStep.addChild(exprStep);
-      stepNode.addChild(varStep);
-      node.addChild(stepNode);
-    jj_consume_token(FECHA_PAR);
+        ASTNode varStep = new ASTNode("Vari\u00e1vel", tIdStep.image, tIdStep.beginLine, tIdStep.beginColumn);
+        varStep.addChild(exprStep);
+        stepNode.addChild(varStep);
+        node.addChild(stepNode);
+      jj_consume_token(FECHA_PAR);
+    } catch (ParseException e) {
+registrarErro(e);
+      recuperarErroPara();
+    }
     jj_consume_token(ABRE_CHAVES);
     label_6:
     while (true) {

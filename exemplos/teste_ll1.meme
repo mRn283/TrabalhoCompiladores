@@ -1,0 +1,35 @@
+brabo a = 5, b = 10, c = 2, resultadoInt;
+realoficial x = 1.5, y = 2.5, resultadoFloat;
+fofoca status = "Iniciando teste LL1", msgSucesso = "Teste LL1 concluido com sucesso!";
+
+F(status);
+
+resultadoInt = a + b * c / (b - a);
+F(resultadoInt);
+
+resultadoFloat = x + y * 2.0;
+F(resultadoFloat);
+
+tem_certeza? (resultadoInt > a) {
+  F("Caminho verdadeiro do if");
+  tem_certeza? (resultadoFloat == 6.5) {
+    F("If aninhado verdadeiro");
+  } senao {
+    F("If aninhado falso");
+  }
+} senao {
+  F("Caminho falso do if");
+}
+
+brabo contador = 1;
+segue_o_baile (contador <= 3) {
+  F(contador);
+  contador = contador + 1;
+}
+
+ja_acabou_jessica (brabo i = 0; i < 2; i = i + 1) {
+  F("Loop para i:");
+  F(i);
+}
+
+F(msgSucesso);

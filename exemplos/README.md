@@ -16,11 +16,15 @@ Este diretório contém códigos de teste com a extensão `.meme` para você car
 4. 🏃 **[repeticao_para.meme](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/exemplos/repeticao_para.meme)**
    - **Objetivo**: Testar o laço contado `ja_acabou_jessica` (for), validando a declaração da variável contadora, a condição limite e o incremento.
 
-5. 🏆 **[programa_completo.meme](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/exemplos/programa_completo.meme)**
+5. 🏆 **[programa_completo.meme](file:///c:/Users/gabri/Desktop/TrabalhoCompiladores/exemplos/programa_completo.meme)**
    - **Objetivo**: Um script integrado misturando declaração múltipla, atribuições, expressões matemáticas complexas, desvios condicionais e laços de repetição (`segue_o_baile` e `ja_acabou_jessica`).
 
-6. ⚠️ **[contem_erros.meme](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/exemplos/contem_erros.meme)**
+6. 🎯 **[teste_ll1.meme](file:///c:/Users/gabri/Desktop/TrabalhoCompiladores/exemplos/teste_ll1.meme)**
+   - **Objetivo**: Provar e testar de forma definitiva a conformidade da gramática com a análise preditiva **LL(1)**. O arquivo exercita a ausência de recursão à esquerda por meio de expressões com precedências complexas (adição, subtração, multiplicação e divisão), múltiplos pontos de escolha de decisão (declaração múltipla com inicializações opcionais, if/else aninhados com dangling-else resolvido implicitamente por lookahead determinístico), todos estruturados para compilar com `LOOKAHEAD = 1`.
+
+7. ⚠️ **[contem_erros.meme](file:///c:/Users/gabri/Desktop/TrabalhoCompiladores/exemplos/contem_erros.meme)**
    - **Objetivo**: Testar a **robustez** do analisador léxico e sintático da sua IDE. Ele possui erros intencionais (como caracteres inválidos `@` e `$` e falta de `;`), permitindo que você veja as mensagens vermelhas na IDE e teste o mecanismo de recuperação de erros da gramática.
+
 
 ---
 

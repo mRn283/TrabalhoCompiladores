@@ -22,11 +22,114 @@ public class gramaticameme
   public static List<String> listaErros = new ArrayList<String>();
   public static List<Integer> listaLinhasErros = new ArrayList<Integer>();
   
+  public static boolean isOperand(int kind) {
+      return kind == ID ||
+             kind == NUMERO ||
+             kind == NUMERO_FLOAT ||
+             kind == STRING ||
+             kind == T_TOP ||
+             kind == T_TROLL;
+  }
+
+  public static boolean isMissingOperator(ParseException e) {
+      Token current = e.currentToken;
+      if (current == null) return false;
+      Token proximo = current.next;
+      if (proximo == null) return false;
+      
+      if (isOperand(current.kind) && isOperand(proximo.kind)) {
+          if (proximo.next != null && proximo.next.kind == ATRIB) {
+              return false;
+          }
+          return true;
+      }
+      return false;
+  }
+
+  public static boolean isMissingIdentifier(ParseException e) {
+      Token current = e.currentToken;
+      if (current == null) return false;
+      Token proximo = current.next;
+      if (proximo == null) return false;
+      
+      if (current.kind == T_BRABO || current.kind == T_REAL || current.kind == T_FOFOCA || current.kind == VIRGULA) {
+          if (proximo.kind == ATRIB || proximo.kind == PONTO_VIRGULA || proximo.kind == VIRGULA) {
+              return true;
+          }
+      }
+      
+      if (current.kind == PONTO_VIRGULA && proximo.kind == ATRIB) {
+          return true;
+      }
+      
+      boolean expectedOnlyID = false;
+      if (e.expectedTokenSequences != null && e.expectedTokenSequences.length > 0) {
+          boolean allSequencesAreID = true;
+          for (int i = 0; i < e.expectedTokenSequences.length; i++) {
+              if (e.expectedTokenSequences[i].length > 0) {
+                  int expectedKind = e.expectedTokenSequences[i][0];
+                  if (expectedKind != ID) {
+                      allSequencesAreID = false;
+                      break;
+                  }
+              } else {
+                  allSequencesAreID = false;
+                  break;
+              }
+          }
+          if (allSequencesAreID) {
+              expectedOnlyID = true;
+          }
+      }
+      
+      if (expectedOnlyID && proximo.kind != ID) {
+          return true;
+      }
+      
+      return false;
+  }
+
+  public static boolean isMissingSemicolon(ParseException e) {
+      Token current = e.currentToken;
+      if (current == null) return false;
+      Token proximo = current.next;
+      if (proximo == null) return false;
+      
+      boolean expectedSemicolon = false;
+      if (e.expectedTokenSequences != null) {
+          for (int i = 0; i < e.expectedTokenSequences.length; i++) {
+              for (int j = 0; j < e.expectedTokenSequences[i].length; j++) {
+                  if (e.expectedTokenSequences[i][j] == PONTO_VIRGULA) {
+                      expectedSemicolon = true;
+                      break;
+                  }
+              }
+              if (expectedSemicolon) break;
+          }
+      }
+      
+      if (expectedSemicolon) {
+          if (proximo.kind == T_BRABO || proximo.kind == T_REAL || proximo.kind == T_FOFOCA || 
+              proximo.kind == T_SE || proximo.kind == T_ENQUANTO || proximo.kind == T_PARA || 
+              proximo.kind == T_F || proximo.kind == FECHA_CHAVES ||
+              (proximo.kind == ID && proximo.next != null && proximo.next.kind == ATRIB)) {
+              return true;
+          }
+      }
+      return false;
+  }
+
   public static void registrarErro(ParseException e) {
       Token proximo = e.currentToken.next;
       String msg = "";
       if (proximo.kind == INVALID) {
           msg = "Erro Léxico na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": caractere inválido '" + proximo.image + "'";
+      } else if (isMissingOperator(e)) {
+          msg = "Erro Sintático na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": Ausência de operador (como '<', '>', '=', etc.) entre '" + e.currentToken.image + "' e '" + proximo.image + "'";
+      } else if (isMissingIdentifier(e)) {
+          msg = "Erro Sintático na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": Ausência de identificador (nome de variável esperado, mas foi encontrado '" + proximo.image + "')";
+      } else if (isMissingSemicolon(e)) {
+          msg = "Erro Sintático na Linha " + e.currentToken.beginLine + ", Coluna " + (e.currentToken.endColumn + 1) + ": Ausência de ';' ao final do comando (encontrado '" + proximo.image + "')";
       } else {
           msg = "Erro Sintático na Linha " + proximo.beginLine + ", Coluna " + proximo.beginColumn + ": Encontrado '" + proximo.image + "'. Esperava-se: ";
           Set<String> esperados = new HashSet<String>();
@@ -59,6 +162,23 @@ public class gramaticameme
               break;
           }
           getNextToken(); // consome outros tokens
+      }
+  }
+
+  public static void recuperarErroPara() {
+      Token t;
+      while (true) {
+          t = getToken(1);
+          if (t.kind == EOF) {
+              break;
+          }
+          if (t.kind == ABRE_CHAVES) {
+              break; // não consome, o parser consome depois
+          }
+          if (t.kind == FECHA_CHAVES) {
+              break; // não consome
+          }
+          getNextToken();
       }
   }
 
@@ -318,11 +438,16 @@ ASTNode Condicional() :
   ASTNode blockFalse = new ASTNode("Senão");
 }
 {
-  <T_SE> <ABRE_PAR> expr = Expressao() <FECHA_PAR> 
-  { 
-    ASTNode condNode = new ASTNode("Condição");
-    condNode.addChild(expr);
-    node.addChild(condNode); 
+  try {
+    <T_SE> <ABRE_PAR> expr = Expressao() <FECHA_PAR> 
+    { 
+      ASTNode condNode = new ASTNode("Condição");
+      condNode.addChild(expr);
+      node.addChild(condNode); 
+    }
+  } catch (ParseException e) {
+      registrarErro(e);
+      recuperarErroPara();
   }
   <ABRE_CHAVES> 
     ( cmd = Comando() { if (cmd != null) blockTrue.addChild(cmd); } )* 
@@ -346,11 +471,16 @@ ASTNode LacoEnquanto() :
   ASTNode body = new ASTNode("Corpo");
 }
 {
-  <T_ENQUANTO> <ABRE_PAR> expr = Expressao() <FECHA_PAR>
-  {
-    ASTNode cond = new ASTNode("Condição");
-    cond.addChild(expr);
-    node.addChild(cond);
+  try {
+    <T_ENQUANTO> <ABRE_PAR> expr = Expressao() <FECHA_PAR>
+    {
+      ASTNode cond = new ASTNode("Condição");
+      cond.addChild(expr);
+      node.addChild(cond);
+    }
+  } catch (ParseException e) {
+      registrarErro(e);
+      recuperarErroPara();
   }
   <ABRE_CHAVES>
     ( cmd = Comando() { if (cmd != null) body.addChild(cmd); } )*
@@ -374,32 +504,37 @@ ASTNode LacoPara() :
   ASTNode body = new ASTNode("Corpo");
 }
 {
-  <T_PARA> <ABRE_PAR> 
-    ( tType = <T_BRABO> | tType = <T_REAL> | tType = <T_FOFOCA> ) 
-    tIdInit = <ID> <ATRIB> exprInit = Expressao() <PONTO_VIRGULA>
-    {
-      ASTNode initNode = new ASTNode("Inicialização");
-      ASTNode varNode = new ASTNode("Variável", tIdInit.image, tIdInit.beginLine, tIdInit.beginColumn);
-      varNode.addChild(new ASTNode("Tipo", tType.image));
-      varNode.addChild(exprInit);
-      initNode.addChild(varNode);
-      node.addChild(initNode);
-    }
-    exprCond = Expressao() <PONTO_VIRGULA>
-    {
-      ASTNode condNode = new ASTNode("Condição");
-      condNode.addChild(exprCond);
-      node.addChild(condNode);
-    }
-    tIdStep = <ID> <ATRIB> exprStep = Expressao()
-    {
-      ASTNode stepNode = new ASTNode("Passo");
-      ASTNode varStep = new ASTNode("Variável", tIdStep.image, tIdStep.beginLine, tIdStep.beginColumn);
-      varStep.addChild(exprStep);
-      stepNode.addChild(varStep);
-      node.addChild(stepNode);
-    }
-  <FECHA_PAR>
+  try {
+    <T_PARA> <ABRE_PAR> 
+      ( tType = <T_BRABO> | tType = <T_REAL> | tType = <T_FOFOCA> ) 
+      tIdInit = <ID> <ATRIB> exprInit = Expressao() <PONTO_VIRGULA>
+      {
+        ASTNode initNode = new ASTNode("Inicialização");
+        ASTNode varNode = new ASTNode("Variável", tIdInit.image, tIdInit.beginLine, tIdInit.beginColumn);
+        varNode.addChild(new ASTNode("Tipo", tType.image));
+        varNode.addChild(exprInit);
+        initNode.addChild(varNode);
+        node.addChild(initNode);
+      }
+      exprCond = Expressao() <PONTO_VIRGULA>
+      {
+        ASTNode condNode = new ASTNode("Condição");
+        condNode.addChild(exprCond);
+        node.addChild(condNode);
+      }
+      tIdStep = <ID> <ATRIB> exprStep = Expressao()
+      {
+        ASTNode stepNode = new ASTNode("Passo");
+        ASTNode varStep = new ASTNode("Variável", tIdStep.image, tIdStep.beginLine, tIdStep.beginColumn);
+        varStep.addChild(exprStep);
+        stepNode.addChild(varStep);
+        node.addChild(stepNode);
+      }
+    <FECHA_PAR>
+  } catch (ParseException e) {
+      registrarErro(e);
+      recuperarErroPara();
+  }
   <ABRE_CHAVES>
     ( cmd = Comando() { if (cmd != null) body.addChild(cmd); } )*
   <FECHA_CHAVES>
