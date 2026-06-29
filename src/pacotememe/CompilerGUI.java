@@ -24,15 +24,15 @@ public class CompilerGUI extends JFrame {
     private File currentFile = null;
     private static gramaticameme parserInstance = null;
 
-    // Dark Mode Theme Colors
-    private static final Color COLOR_BG_DARK = new Color(30, 30, 30);
-    private static final Color COLOR_BG_LIGHTER = new Color(45, 45, 45);
-    private static final Color COLOR_BG_EDITOR = new Color(20, 20, 20);
-    private static final Color COLOR_FG = new Color(220, 220, 220);
-    private static final Color COLOR_FG_MUTED = new Color(130, 130, 130);
+    // Light Mode Theme Colors
+    private static final Color COLOR_BG_DARK = new Color(240, 240, 240);
+    private static final Color COLOR_BG_LIGHTER = new Color(248, 248, 248);
+    private static final Color COLOR_BG_EDITOR = new Color(255, 255, 255);
+    private static final Color COLOR_FG = new Color(40, 40, 40);
+    private static final Color COLOR_FG_MUTED = new Color(110, 110, 110);
     private static final Color COLOR_ACCENT = new Color(14, 99, 156);
-    private static final Color COLOR_SUCCESS = new Color(76, 175, 80);
-    private static final Color COLOR_ERROR = new Color(244, 67, 54);
+    private static final Color COLOR_SUCCESS = new Color(46, 125, 50);
+    private static final Color COLOR_ERROR = new Color(198, 40, 40);
 
     public CompilerGUI() {
         super("Compilador CompilaMeme - IDE");
@@ -83,7 +83,7 @@ public class CompilerGUI extends JFrame {
         txtEditor = new JTextArea();
         txtEditor.setBackground(COLOR_BG_EDITOR);
         txtEditor.setForeground(COLOR_FG);
-        txtEditor.setCaretColor(Color.WHITE);
+        txtEditor.setCaretColor(COLOR_FG);
         txtEditor.setFont(new Font("Consolas", Font.PLAIN, 15));
         txtEditor.setBorder(new EmptyBorder(5, 5, 5, 5));
 

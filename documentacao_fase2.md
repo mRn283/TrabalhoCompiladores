@@ -20,7 +20,7 @@ A Fase 2 elevou o patamar do compilador de um analisador linear e frágil para u
 Para permitir que o parser avance de forma preditiva examinando um único token à frente (`LOOKAHEAD = 1`), a gramática do CompilaMeme foi reformulada para evitar ambiguidades e recursões à esquerda.
 
 ### Configuração no JavaCC
-No arquivo [gramaticameme.jj](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/src/pacotememe/gramaticameme.jj), o analisador foi parametrizado explicitamente para processamento preditivo determinístico:
+No arquivo gramaticameme.jj, o analisador foi parametrizado explicitamente para processamento preditivo determinístico:
 
 ```jj
 options
@@ -33,7 +33,7 @@ options
 ### Eliminação de Recursão à Esquerda
 Regras gramaticais clássicas como a de expressões aritméticas apresentam recursividade à esquerda (por exemplo, $E --> E + T | T$). Em um analisador sintático descendente recursivo (como o gerado pelo JavaCC), essa estrutura causaria loops de recursão infinita.
 
-A solução adotada no arquivo [gramaticameme.jj](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/src/pacotememe/gramaticameme.jj) foi eliminar a recursão substituindo-a por iterações em formato EBNF (com o operador de repetição `*`). Veja os exemplos reais extraídos do código:
+A solução adotada no arquivo gramaticameme.jj foi eliminar a recursão substituindo-a por iterações em formato EBNF (com o operador de repetição `*`). Veja os exemplos reais extraídos do código:
 
 #### Expressão Aritmética:
 ```jj
@@ -98,7 +98,7 @@ A capacidade de recuperação é vital para uma experiência de desenvolvimento 
 ### Capturando a Exceção
 O parser intercepta a `ParseException` nos pontos estratégicos da gramática para que uma falha local não aborte o processamento de todo o script.
 
-Em cada bloco de instrução em [gramaticameme.jj](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/src/pacotememe/gramaticameme.jj), como na regra `Comando()`, temos:
+Em cada bloco de instrução em gramaticameme.jj, como na regra `Comando()`, temos:
 
 ```jj
 ASTNode Comando() :
@@ -187,7 +187,7 @@ Dessa forma, o compilador ignora a linha problemática e retoma a compilação d
 
 ## 4. Interface Gráfica de Interação (A IDE CompilaMeme)
 
-A IDE do CompilaMeme foi construída em [CompilerGUI.java](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/src/pacotememe/CompilerGUI.java) com componentes robustos da biblioteca Java Swing e configurada com uma identidade visual moderna voltada ao tema escuro (*Dark Mode*).
+A IDE do CompilaMeme foi construída em CompilerGUI.java com componentes robustos da biblioteca Java Swing e configurada com uma identidade visual moderna voltada ao tema escuro.
 
 ```
 +-------------------------------------------------------------+
@@ -221,7 +221,7 @@ A IDE do CompilaMeme foi construída em [CompilerGUI.java](file:///c:/Users/GABR
 A estruturação semântica e hierárquica do código-fonte é capturada sob o modelo de árvore de nós após o sucesso do analisador.
 
 ### Estrutura do Nó da Árvore (`ASTNode.java`)
-O arquivo [ASTNode.java](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/src/pacotememe/ASTNode.java) define a estrutura fundamental da nossa árvore sintática:
+O arquivo ASTNode.java define a estrutura fundamental da nossa árvore sintática:
 
 ```java
 public class ASTNode {
@@ -282,7 +282,7 @@ Nesse trecho, a regra:
 ### Renderização com JTree do Swing
 Uma vez concluída a análise do programa principal, a estrutura hierárquica baseada em `ASTNode` é entregue à IDE. 
 
-No arquivo [CompilerGUI.java](file:///c:/Users/GABRIEL%20VIEIRA/Desktop/TrabalhoCompiladores/src/pacotememe/CompilerGUI.java), a tradução da árvore da gramática para os componentes gráficos do Swing é realizada pelo método `buildSwingTree`:
+No arquivo CompilerGUI.java, a tradução da árvore da gramática para os componentes gráficos do Swing é realizada pelo método `buildSwingTree`:
 
 ```java
     private DefaultMutableTreeNode buildSwingTree(ASTNode node) {
